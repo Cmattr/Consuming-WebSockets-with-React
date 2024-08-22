@@ -1,41 +1,51 @@
-import './App.css'
-import { useEffect, useState } from 'react'
-import { io } from 'socket.io-client'
-import { Container } from 'react-bootstrap';
-import Post from './Components/Create-Post';
-
+import React, { useState, useEffect } from 'react';
+import io from 'socket.io-client';
+import RealTimeChart from './Components/RealTimeChart';
 
 const socket = io("http://127.0.0.1:5000");
 
-function App() {
-  const [isConnected, setIsConnected] =useState(socket.connected);
+const App: React.FC = () => {
+  const [isConnected, setIsConnected] = useState(socket.connected);
+  const [timer, setTimer] = useState(0);
 
   useEffect(() => {
-    console.log("connecting to server...");
+    console.log("Connecting to server...");
     socket.on("connect", () => {
-      console.log("connected to server");
-      setIsConnected(true)
+      console.log("Connected to server");
+      setIsConnected(true);
     });
 
-    socket.on("disconneted", () => {
+    socket.on("disconnect", () => {
       console.log("Disconnected from server");
-      setIsConnected(false)
+      setIsConnected(false);
     });
-  }, [isConnected]);
+
+    return () => {
+      socket.off("connect");
+      socket.off("disconnect");
+    };
+  }, []);
+
+  const handleSetTimer = () => {
+    console.log("Setting timer:", timer);
+    socket.emit('set_timer', { time: timer });
+  };
 
   return (
     <div>
-      <h1>Welcome to The Public Post Form</h1>
-      <p>Connection Status:
-        {isConnected ? "connected" : "Not connected"}
-      </p>
-      <Container>
-        <h2>Create A Post</h2>
-        <Post socket={socket} /> 
-      </Container>
-
+      <h1>Real-Time Timer</h1>
+      <div>
+        <input
+          type="number"
+          value={timer}
+          onChange={(e) => setTimer(Number(e.target.value))}
+          placeholder="Set Timer (seconds)"
+        />
+        <button onClick={handleSetTimer}>Start Timer</button>
+      </div>
+      <RealTimeChart socket={socket} />
     </div>
   );
-}
+};
 
 export default App;
